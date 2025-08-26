@@ -21,7 +21,14 @@ let translationX = 0.0;
 const translationSpeed = 0.003;
 const translationRange = 0.7;
 let direction = 1;
+let boat1X = 0;       // red boat
+let boat1Dir = 1;     // 1 = right, -1 = left
 
+let boat2X = -0.5;    // purple boat (start more left)
+let boat2Dir = 1;     
+
+let boatSpeed = 0.003;   // tweak speed
+let boatRange = 0.7;  
 // for rotation of the windmill and sun
 let rotationAngle = 0.0;
 const rotationSpeed = 0.03;
@@ -269,7 +276,24 @@ function drawCircle(color, mMatrix) {
     }
 }
 
-// this function is for creating the rays of the sun
+// OBJECT 1: SKY 
+
+function drawSky() {
+    // initialize the model matrix to identity matrix
+    mat4.identity(mMatrix);
+    pushMatrix(matrixStack, mMatrix);
+    color = [0, 0, 0, 1];  // sky blue colour
+    // local translation operation for the square
+    mMatrix = mat4.translate(mMatrix, [0.0, 0.6, 0]);
+    // local scale operation for the square
+    mMatrix = mat4.scale(mMatrix, [3.0, 1.2, 1.0]);
+    drawSquare(color, mMatrix);
+    mMatrix = popMatrix(matrixStack);
+}
+
+// OBJECT 2: MOON 
+
+// this function is for creating the rays of the moon
 function initRayBuffer() {
     // buffer for point locations
     const positions = [0, 0];
@@ -323,6 +347,161 @@ function drawRays(color, mMatrix) {
         gl.drawElements(gl.LINE_STRIP, rayIndexBuf.numItems, gl.UNSIGNED_SHORT, 0);
     }
 }
+// The rotation angle is taken as input for animation
+function drawMoon(rotationAngle) {
+    // initialize the model matrix to identity matrix
+    mat4.identity(mMatrix);
+    pushMatrix(matrixStack, mMatrix);
+    color = [1, 0, 0, 0];
+    // local translation operation for the circle
+    mMatrix = mat4.translate(mMatrix, [-0.7, 0.84, 0]);
+    // local scale operation for the circle
+    mMatrix = mat4.scale(mMatrix, [0.1, 0.1, 1.0]);
+    drawCircle(color, mMatrix);
+    mMatrix = popMatrix(matrixStack);
+
+    pushMatrix(matrixStack, mMatrix);
+    // local translation operation for the circle
+    mMatrix = mat4.translate(mMatrix, [-0.7, 0.84, 0]);
+    // local scale operation for the circle
+    mMatrix = mat4.scale(mMatrix, [0.15, 0.15, 1.0]);
+    // rotation of the circle for animation
+    mMatrix = mat4.rotate(mMatrix, rotationAngle, [0, 0, 1]);
+    drawRays(color, mMatrix);
+    mMatrix = popMatrix(matrixStack);
+}
+
+// OBJECT 3: CLOUDS
+
+function drawCloud() {
+    // initialize the model matrix to identity matrix
+    mat4.identity(mMatrix);
+    pushMatrix(matrixStack, mMatrix);
+    let color = [0.7, 0.7, 0.7, 1.0];   // grey
+    // local translation operation for the circle
+    mMatrix = mat4.translate(mMatrix, [-0.8, 0.55, 0]);
+    // local scale operation for the circle
+    mMatrix = mat4.scale(mMatrix, [0.25, 0.13, 1.0]);
+    drawCircle(color, mMatrix);
+    mMatrix = popMatrix(matrixStack);
+
+    pushMatrix(matrixStack, mMatrix);
+    color = [1.0, 1.0, 1.0, 1.0];
+    // local translation operation for the circle
+    mMatrix = mat4.translate(mMatrix, [-0.55, 0.52, 0]);
+    // local scale operation for the circle
+    mMatrix = mat4.scale(mMatrix, [0.2, 0.09, 1.0]);
+    drawCircle(color, mMatrix);
+    mMatrix = popMatrix(matrixStack);
+
+    pushMatrix(matrixStack, mMatrix);
+    color = [0.7, 0.7, 0.7, 1.0];
+    // local translation operation for the circle
+    mMatrix = mat4.translate(mMatrix, [-0.3, 0.52, 0]);
+    // local scale operation for the circle
+    mMatrix = mat4.scale(mMatrix, [0.1, 0.05, 1.0]);
+    drawCircle(color, mMatrix);
+    mMatrix = popMatrix(matrixStack);
+}
+
+
+// OBJECT 4: STARS
+
+function drawStar(x, y, size = 1.0) {
+  const STARCOL = [1.0, 1.0, 1.0, 1.0]; // white
+  const numPoints = 4;
+
+  for (let k = 0; k < numPoints; k++) {
+    mat4.identity(mMatrix);
+    mMatrix = mat4.translate(mMatrix, [x, y, 0]);
+    mMatrix = mat4.rotate(mMatrix, degToRad(k * 90), [0, 0, 1]);
+    // Move triangle outward so fat base is in the middle
+    mMatrix = mat4.translate(mMatrix, [0, 0.04 * size, 0]);
+    // Scale so base is wider at the center, point at the end
+    mMatrix = mat4.scale(mMatrix, [0.04 * size, 0.12 * size, 1.0]);
+    drawTriangle(STARCOL, mMatrix);
+  }
+}
+
+// OBJECT 5 : MOUNTAINS
+
+function drawMountain(t_x1, t_y1, s_x, s_y, t_x2 = 0, t_y2 = 0, single = false) {
+    /*
+    t_x1, t_x2 : Translation along X-axis for the first and second triangle respectively
+    t_y1, t_y2 : Translation along Y-axis for the first and second triangle respectively
+    s_x : Scale Factor on X Axis for both triangles
+    s_y : Scale Factor on Y Axis for both triangles
+    single : Since one of the mountains has only one triangle, this is used to denote that
+    */
+    // initialize the model matrix to identity matrix
+    mat4.identity(mMatrix);
+    pushMatrix(matrixStack, mMatrix);
+    color = [0.57, 0.36, 0.15, 1.0];
+    if (single) color = [0.65, 0.46, 0.16, 1.0];
+
+    mMatrix = mat4.translate(mMatrix, [t_x1, t_y1, 0]);
+    mMatrix = mat4.scale(mMatrix, [s_x, s_y, 1.0]);
+    drawTriangle(color, mMatrix);
+    mMatrix = popMatrix(matrixStack);
+
+    // if there is a single triangle in the mountain, we ignore the darker portion
+    if (!single) {
+        pushMatrix(matrixStack, mMatrix);
+        color = [0.65, 0.46, 0.16, 1.0];
+        mMatrix = mat4.translate(mMatrix, [t_x2, t_y2, 0]);
+        mMatrix = mat4.rotate(mMatrix, 6.5, [0, 0, 1]);
+        mMatrix = mat4.scale(mMatrix, [s_x, s_y, 1.0]);
+        drawTriangle(color, mMatrix);
+        mMatrix = popMatrix(matrixStack);
+    }
+}
+
+
+//OBEJCT 6: TREES 
+
+function drawTrees(move = false, t_x = 0, t_y= 0, s_x = 0, s_y = 0) {
+    // initialize the model matrix to identity matrix
+    mat4.identity(mMatrix);
+    if (move) {
+        // applying global translation and scaling
+        mMatrix = mat4.translate(mMatrix, [t_x, t_y, 0]);
+        mMatrix = mat4.scale(mMatrix, [s_x, s_y, 0]);
+    }
+    // stem of the tree
+    pushMatrix(matrixStack, mMatrix);
+    color = [0.502, 0.302, 0.302, 1.0];
+    mMatrix = mat4.translate(mMatrix, [0.55, 0.14, 0]);
+    mMatrix = mat4.scale(mMatrix, [0.04, 0.33, 1.0]);
+    drawSquare(color, mMatrix);
+    mMatrix = popMatrix(matrixStack);
+
+    
+    pushMatrix(matrixStack, mMatrix);
+    color = [0.0, 0.600, 0.302, 1.0];
+    mMatrix = mat4.translate(mMatrix, [0.55, 0.45, 0]);
+    mMatrix = mat4.scale(mMatrix, [0.35, 0.3, 1.0]);
+    drawTriangle(color, mMatrix);
+    mMatrix = popMatrix(matrixStack);
+
+    pushMatrix(matrixStack, mMatrix);
+    color = [0.306, 0.698, 0.306, 1.0];
+    mMatrix = mat4.translate(mMatrix, [0.55, 0.5, 0]);
+    mMatrix = mat4.scale(mMatrix, [0.375, 0.3, 1.0]);
+    drawTriangle(color, mMatrix);
+    mMatrix = popMatrix(matrixStack);
+
+    pushMatrix(matrixStack, mMatrix);
+    color = [0.396, 0.800, 0.302, 1.0];
+    mMatrix = mat4.translate(mMatrix, [0.55, 0.55, 0]);
+    mMatrix = mat4.scale(mMatrix, [0.4, 0.3, 1.0]);
+    drawTriangle(color, mMatrix);
+    mMatrix = popMatrix(matrixStack);
+
+    
+}
+
+
+//OBJECT 7 : WINDMILL
 
 // this function is for creating the blades of the windmill (easier to rotate)
 function initFanBladesBuffer() {
@@ -381,161 +560,50 @@ function drawFanBlades(color, mMatrix) {
     }
 }
 
-function drawSky() {
-    // initialize the model matrix to identity matrix
+// rotationAngle animates the blades
+function drawWindmill(rotationAngle, x = 0.7, y = -0.25, s = 1.0) {
+    // Fan tower
     mat4.identity(mMatrix);
     pushMatrix(matrixStack, mMatrix);
-    color = [0, 0, 0, 1];  // sky blue colour
-    // local translation operation for the square
-    mMatrix = mat4.translate(mMatrix, [0.0, 0.6, 0]);
-    // local scale operation for the square
-    mMatrix = mat4.scale(mMatrix, [3.0, 1.2, 1.0]);
+    color = [0, 0, 0, 1.0];
+    mMatrix = mat4.translate(mMatrix, [x, y, 0]);
+    mMatrix = mat4.scale(mMatrix, [0.03 * s, 0.55 * s, 1.0]);
     drawSquare(color, mMatrix);
     mMatrix = popMatrix(matrixStack);
-}
 
-// The rotation angle is taken as input for animation
-function drawSun(rotationAngle) {
-    // initialize the model matrix to identity matrix
-    mat4.identity(mMatrix);
+    // Fan blades
     pushMatrix(matrixStack, mMatrix);
-    color = [1, 0, 0, 0];
-    // local translation operation for the circle
-    mMatrix = mat4.translate(mMatrix, [-0.7, 0.84, 0]);
-    // local scale operation for the circle
-    mMatrix = mat4.scale(mMatrix, [0.1, 0.1, 1.0]);
-    drawCircle(color, mMatrix);
-    mMatrix = popMatrix(matrixStack);
-
-    pushMatrix(matrixStack, mMatrix);
-    // local translation operation for the circle
-    mMatrix = mat4.translate(mMatrix, [-0.7, 0.84, 0]);
-    // local scale operation for the circle
-    mMatrix = mat4.scale(mMatrix, [0.15, 0.15, 1.0]);
-    // rotation of the circle for animation
+    color = [0.8, 0.75, 0, 1];
+    mMatrix = mat4.translate(mMatrix, [x, y + 0.31 * s, 0]); // top of tower
+    mMatrix = mat4.scale(mMatrix, [0.2 * s, 0.2 * s, 1.0]);
     mMatrix = mat4.rotate(mMatrix, rotationAngle, [0, 0, 1]);
-    drawRays(color, mMatrix);
-    mMatrix = popMatrix(matrixStack);
-}
-
-function drawCloud() {
-    // initialize the model matrix to identity matrix
-    mat4.identity(mMatrix);
-    pushMatrix(matrixStack, mMatrix);
-    let color = [0.7, 0.7, 0.7, 1.0];   // grey
-    // local translation operation for the circle
-    mMatrix = mat4.translate(mMatrix, [-0.8, 0.55, 0]);
-    // local scale operation for the circle
-    mMatrix = mat4.scale(mMatrix, [0.25, 0.13, 1.0]);
-    drawCircle(color, mMatrix);
+    drawFanBlades(color, mMatrix);
     mMatrix = popMatrix(matrixStack);
 
+    // Fan hub (circle in center)
     pushMatrix(matrixStack, mMatrix);
-    color = [1.0, 1.0, 1.0, 1.0];
-    // local translation operation for the circle
-    mMatrix = mat4.translate(mMatrix, [-0.55, 0.52, 0]);
-    // local scale operation for the circle
-    mMatrix = mat4.scale(mMatrix, [0.2, 0.09, 1.0]);
-    drawCircle(color, mMatrix);
-    mMatrix = popMatrix(matrixStack);
-
-    pushMatrix(matrixStack, mMatrix);
-    color = [0.7, 0.7, 0.7, 1.0];
-    // local translation operation for the circle
-    mMatrix = mat4.translate(mMatrix, [-0.3, 0.52, 0]);
-    // local scale operation for the circle
-    mMatrix = mat4.scale(mMatrix, [0.1, 0.05, 1.0]);
+    color = [0, 0, 0, 1];
+    mMatrix = mat4.translate(mMatrix, [x, y + 0.303 * s, 0]);
+    mMatrix = mat4.scale(mMatrix, [0.03 * s, 0.03 * s, 1.0]);
     drawCircle(color, mMatrix);
     mMatrix = popMatrix(matrixStack);
 }
 
-// Since there are 5 birds with different scaling and translation, I am taking few arguments 
-function drawBird(sq_t_x, sq_t_y, sq_s_x, sq_s_y, tr_t_x, tr_t_y, tr_s_x, tr_s_y, angle) {
-    /*
-    sq_t_x : Translation along X axis for the square
-    sq_t_y: Translation along Y axis for the square
-    sq_s_x : Scaling factor on X axis for the square
-    sq_s_y : Scaling factor on Y axis for the square
-    tr_t_x : Translation along X axis for the triangle
-    tr_t_y : Translation along Y axis for the triangle
-    tr_s_x : Scaling factor on X axis for the triangle
-    tr_s_y : Scaling factor on Y axis for the triangle
-    angle : rotating angle for the wings of the bird
 
-    Note : As I progressed through the assignment, I had realized that this could
-    have been done using global translation and scaling ...
-    */
-    // initialize the model matrix to identity matrix
-    // body of the bird
-    mat4.identity(mMatrix);
-    pushMatrix(matrixStack, mMatrix);
-    color = [0.0, 0.0, 0.0, 1.0];
-    // local translation operation for the circle
-    mMatrix = mat4.translate(mMatrix, [sq_t_x, sq_t_y, 0]);
-    // local scale operation for the circle
-    mMatrix = mat4.scale(mMatrix, [sq_s_x, sq_s_y, 1.0]);
-    drawSquare(color, mMatrix);
-    mMatrix = popMatrix(matrixStack);
-
-    // creating the wings of the bird
-    mat4.identity(mMatrix);
-    pushMatrix(matrixStack, mMatrix);
-    mMatrix = mat4.translate(mMatrix, [tr_t_x, tr_t_y, 0]);
-    mMatrix = mat4.rotate(mMatrix, angle, [0, 0, 1]);
-    mMatrix = mat4.scale(mMatrix, [tr_s_x, tr_s_y, 1.0]);
-    drawTriangle(color, mMatrix);
-    mMatrix = popMatrix(matrixStack);
-
-    mat4.identity(mMatrix);
-    pushMatrix(matrixStack, mMatrix);
-    mMatrix = mat4.translate(mMatrix, [2*sq_t_x - tr_t_x, tr_t_y, 0]);
-    mMatrix = mat4.rotate(mMatrix, -angle, [0, 0, 1]);
-    mMatrix = mat4.scale(mMatrix, [tr_s_x, tr_s_y, 1.0]);
-    drawTriangle(color, mMatrix);
-    mMatrix = popMatrix(matrixStack);
-}
-
-function drawMountain(t_x1, t_y1, s_x, s_y, t_x2 = 0, t_y2 = 0, single = false) {
-    /*
-    t_x1, t_x2 : Translation along X-axis for the first and second triangle respectively
-    t_y1, t_y2 : Translation along Y-axis for the first and second triangle respectively
-    s_x : Scale Factor on X Axis for both triangles
-    s_y : Scale Factor on Y Axis for both triangles
-    single : Since one of the mountains has only one triangle, this is used to denote that
-    */
-    // initialize the model matrix to identity matrix
-    mat4.identity(mMatrix);
-    pushMatrix(matrixStack, mMatrix);
-    color = [0.57, 0.36, 0.15, 1.0];
-    if (single) color = [0.65, 0.46, 0.16, 1.0];
-
-    mMatrix = mat4.translate(mMatrix, [t_x1, t_y1, 0]);
-    mMatrix = mat4.scale(mMatrix, [s_x, s_y, 1.0]);
-    drawTriangle(color, mMatrix);
-    mMatrix = popMatrix(matrixStack);
-
-    // if there is a single triangle in the mountain, we ignore the darker portion
-    if (!single) {
-        pushMatrix(matrixStack, mMatrix);
-        color = [0.65, 0.46, 0.16, 1.0];
-        mMatrix = mat4.translate(mMatrix, [t_x2, t_y2, 0]);
-        mMatrix = mat4.rotate(mMatrix, 6.5, [0, 0, 1]);
-        mMatrix = mat4.scale(mMatrix, [s_x, s_y, 1.0]);
-        drawTriangle(color, mMatrix);
-        mMatrix = popMatrix(matrixStack);
-    }
-}
+// OBJECT 8: GROUND
 
 function drawGround() {
     // initialize the model matrix to identity matrix
     mat4.identity(mMatrix);
     pushMatrix(matrixStack, mMatrix);
-    color = [0.15, 0.61, 0, 0.7];
+    color = [0.0, 0.898, 0.502, 1.0];
     mMatrix = mat4.translate(mMatrix, [0.0, -0.6, 0]);
     mMatrix = mat4.scale(mMatrix, [3.0, 1.2, 1.0]);
     drawSquare(color, mMatrix);
     mMatrix = popMatrix(matrixStack);
 }
+
+// OBJECT 9: RIVER 
 
 // for drawing lines on the river
 function drawLines(move = false, x = 0, y = 0) {
@@ -574,57 +642,70 @@ function drawRiver() {
     drawLines(true, 1.5, -0.06);
 }
 
-function drawRoad() {
-    // initialize the model matrix to identity matrix
+
+//OBJECT 10: BOAT 
+function drawBoat_purple(translationX) {
     mat4.identity(mMatrix);
+
+    // apply global translation (with a slight upward shift on Y)
+    mMatrix = mat4.translate(mMatrix, [translationX, 0.08, 0]);  
+    // ^ added +0.05 to Y to move boat higher
+
+    // scale down the entire boat
+    const scaleFactor = 0.6;  
+
+     // sail (now purple!)
     pushMatrix(matrixStack, mMatrix);
-    color = [0.30, 0.40, 0, 0.9];
-    mMatrix = mat4.translate(mMatrix, [0.6, -0.8, 0]);
-    mMatrix = mat4.rotate(mMatrix, 7.2, [0, 0, 1]);
-    mMatrix = mat4.scale(mMatrix, [1.6, 2, 1.0]);
+    color = [0.6, 0.0, 0.6, 0.9];  // purple RGBA
+    mMatrix = mat4.translate(mMatrix, [0.115 * scaleFactor, -0.05, 0]);
+    mMatrix = mat4.rotate(mMatrix, 4.72, [0, 0, 1]);
+    mMatrix = mat4.scale(mMatrix, [0.2 * scaleFactor, 0.2 * scaleFactor, 1.0]);
     drawTriangle(color, mMatrix);
     mMatrix = popMatrix(matrixStack);
-}
-
-function drawTrees(move = false, t_x = 0, t_y= 0, s_x = 0, s_y = 0) {
-    // initialize the model matrix to identity matrix
-    mat4.identity(mMatrix);
-    if (move) {
-        // applying global translation and scaling
-        mMatrix = mat4.translate(mMatrix, [t_x, t_y, 0]);
-        mMatrix = mat4.scale(mMatrix, [s_x, s_y, 0]);
-    }
-
+    // mast (center pole)
     pushMatrix(matrixStack, mMatrix);
-    color = [0.30, 0.41, 0, 0.9];
-    mMatrix = mat4.translate(mMatrix, [0.55, 0.45, 0]);
-    mMatrix = mat4.scale(mMatrix, [0.35, 0.3, 1.0]);
-    drawTriangle(color, mMatrix);
-    mMatrix = popMatrix(matrixStack);
-
-    pushMatrix(matrixStack, mMatrix);
-    color = [0.38, 0.51, 0, 0.9];
-    mMatrix = mat4.translate(mMatrix, [0.55, 0.5, 0]);
-    mMatrix = mat4.scale(mMatrix, [0.375, 0.3, 1.0]);
-    drawTriangle(color, mMatrix);
-    mMatrix = popMatrix(matrixStack);
-
-    pushMatrix(matrixStack, mMatrix);
-    color = [0.45, 0.60, 0, 0.9];
-    mMatrix = mat4.translate(mMatrix, [0.55, 0.55, 0]);
-    mMatrix = mat4.scale(mMatrix, [0.4, 0.3, 1.0]);
-    drawTriangle(color, mMatrix);
-    mMatrix = popMatrix(matrixStack);
-
-    // stem of the tree
-    pushMatrix(matrixStack, mMatrix);
-    color = [0.57, 0.36, 0.15, 1.0];
-    mMatrix = mat4.translate(mMatrix, [0.55, 0.14, 0]);
-    mMatrix = mat4.scale(mMatrix, [0.04, 0.33, 1.0]);
+    color = [0, 0, 0, 1.0];
+    mMatrix = mat4.translate(mMatrix, [0.01, -0.05, 0]);
+    mMatrix = mat4.scale(mMatrix, [0.01, 0.15, 1.0]);
     drawSquare(color, mMatrix);
     mMatrix = popMatrix(matrixStack);
-}
+    // boat body (rectangle)
+    pushMatrix(matrixStack, mMatrix);
+    color = [0.800, 0.800, 0.800, 1.0];
+    mMatrix = mat4.translate(mMatrix, [0, -0.15, 0]);
+    mMatrix = mat4.scale(mMatrix, [0.18 * scaleFactor, 0.06 * scaleFactor, 1.0]);
+    drawSquare(color, mMatrix);
+    mMatrix = popMatrix(matrixStack);
 
+    // left triangle end
+    pushMatrix(matrixStack, mMatrix);
+    mMatrix = mat4.translate(mMatrix, [-0.09 * scaleFactor, -0.15, 0]);
+    mMatrix = mat4.rotate(mMatrix, -3.15, [0, 0, 1]);
+    mMatrix = mat4.scale(mMatrix, [0.1 * scaleFactor, 0.06 * scaleFactor, 1.0]);
+    drawTriangle(color, mMatrix);
+    mMatrix = popMatrix(matrixStack);
+
+    // right triangle end
+    pushMatrix(matrixStack, mMatrix);
+    mMatrix = mat4.translate(mMatrix, [0.09 * scaleFactor, -0.15, 0]);
+    mMatrix = mat4.rotate(mMatrix, -3.15, [0, 0, 1]);
+    mMatrix = mat4.scale(mMatrix, [0.1 * scaleFactor, 0.06 * scaleFactor, 1.0]);
+    drawTriangle(color, mMatrix);
+    mMatrix = popMatrix(matrixStack);
+
+    
+
+    // support rope/pole
+    pushMatrix(matrixStack, mMatrix);
+    color = [0, 0, 0, 1.0];
+    mMatrix = mat4.translate(mMatrix, [-0.02, -0.065, 0]);
+    mMatrix = mat4.rotate(mMatrix, 5.9, [0, 0, 1]);
+    mMatrix = mat4.scale(mMatrix, [0.005, 0.23 * scaleFactor, 1.0]);
+    drawSquare(color, mMatrix);
+    mMatrix = popMatrix(matrixStack);
+
+   
+}
 // translationX is taken as argument for the animation
 function drawBoat(translationX) {
     // initialize the model matrix to identity matrix
@@ -634,7 +715,7 @@ function drawBoat(translationX) {
     mMatrix = mat4.translate(mMatrix, [translationX, 0., 0]);
 
     pushMatrix(matrixStack, mMatrix);
-    color = [0.83, 0.83, 0.83, 1];
+    color = [0.800, 0.800, 0.800, 1.0];
     mMatrix = mat4.translate(mMatrix, [0, -0.15, 0]);
     mMatrix = mat4.scale(mMatrix, [0.18, 0.06, 1.0]);
     drawSquare(color, mMatrix);
@@ -678,67 +759,21 @@ function drawBoat(translationX) {
     mMatrix = popMatrix(matrixStack);
 }
 
-// rotationAngle is taken as input for animation of the blades
-function drawFan(rotationAngle, move = false, t_x = 0) {
+// OBJECT 11: ROAD 
+
+function drawRoad() {
     // initialize the model matrix to identity matrix
     mat4.identity(mMatrix);
-    if (move) {
-        mMatrix = mat4.translate(mMatrix, [t_x, 0, 0]);
-    }
     pushMatrix(matrixStack, mMatrix);
-    color = [0, 0, 0, 1.0];
-    mMatrix = mat4.translate(mMatrix, [0.7, -0.25, 0]);
-    // local scale operation for the square
-    mMatrix = mat4.scale(mMatrix, [0.03, 0.55, 1.0]);
-    drawSquare(color, mMatrix);
-    mMatrix = popMatrix(matrixStack);
-
-    // drawing the fan blades
-    pushMatrix(matrixStack, mMatrix);
-    color = [0.8, 0.75, 0, 1];
-    mMatrix = mat4.translate(mMatrix, [0.7, 0.06, 0]);
-    mMatrix = mat4.scale(mMatrix, [0.2, 0.2, 1.0]);
-    // rotating the fan blades
-    mMatrix = mat4.rotate(mMatrix, rotationAngle, [0, 0, 1]);
-    drawFanBlades(color, mMatrix);
-    mMatrix = popMatrix(matrixStack);
-
-    pushMatrix(matrixStack, mMatrix);
-    color = [0, 0, 0, 1];
-    mMatrix = mat4.translate(mMatrix, [0.7, 0.053, 0]);
-    mMatrix = mat4.scale(mMatrix, [0.03, 0.03, 1.0]);
-    drawCircle(color, mMatrix);
+    color = [0.400, 0.698, 0.200, 1.0];
+    mMatrix = mat4.translate(mMatrix, [0.6, -0.8, 0]);
+    mMatrix = mat4.rotate(mMatrix, 7.2, [0, 0, 1]);
+    mMatrix = mat4.scale(mMatrix, [1.6, 2, 1.0]);
+    drawTriangle(color, mMatrix);
     mMatrix = popMatrix(matrixStack);
 }
 
-// rotationAngle animates the blades
-function drawFan2(rotationAngle, x = 0.7, y = -0.25, s = 1.0) {
-    // Fan tower
-    mat4.identity(mMatrix);
-    pushMatrix(matrixStack, mMatrix);
-    color = [0, 0, 0, 1.0];
-    mMatrix = mat4.translate(mMatrix, [x, y, 0]);
-    mMatrix = mat4.scale(mMatrix, [0.03 * s, 0.55 * s, 1.0]);
-    drawSquare(color, mMatrix);
-    mMatrix = popMatrix(matrixStack);
-
-    // Fan blades
-    pushMatrix(matrixStack, mMatrix);
-    color = [0.8, 0.75, 0, 1];
-    mMatrix = mat4.translate(mMatrix, [x, y + 0.31 * s, 0]); // top of tower
-    mMatrix = mat4.scale(mMatrix, [0.2 * s, 0.2 * s, 1.0]);
-    mMatrix = mat4.rotate(mMatrix, rotationAngle, [0, 0, 1]);
-    drawFanBlades(color, mMatrix);
-    mMatrix = popMatrix(matrixStack);
-
-    // Fan hub (circle in center)
-    pushMatrix(matrixStack, mMatrix);
-    color = [0, 0, 0, 1];
-    mMatrix = mat4.translate(mMatrix, [x, y + 0.303 * s, 0]);
-    mMatrix = mat4.scale(mMatrix, [0.03 * s, 0.03 * s, 1.0]);
-    drawCircle(color, mMatrix);
-    mMatrix = popMatrix(matrixStack);
-}
+//OBJECT 12 : BUSHES 
 
 function drawBush(move=false, t_x=0, t_y=0, s=0) {
     // initialize the model matrix to identity matrix
@@ -762,12 +797,14 @@ function drawBush(move=false, t_x=0, t_y=0, s=0) {
     mMatrix = popMatrix(matrixStack);
 
     pushMatrix(matrixStack, mMatrix);
-    color = [0, 0.51, 0, 0.9]
+    color = [0.0, 0.600, 0.0, 1.0];
     mMatrix = mat4.translate(mMatrix, [-0.86, -0.53, 0]);
     mMatrix = mat4.scale(mMatrix, [0.13, 0.09, 1.0]);
     drawCircle(color, mMatrix);
     mMatrix = popMatrix(matrixStack);
 }
+
+// OBJECT 13: HOUSE
 
 function drawHouse() {
     // initialize the model matrix to identity matrix
@@ -775,7 +812,7 @@ function drawHouse() {
 
     // roof of the house
     pushMatrix(matrixStack, mMatrix);
-    color = [0.9, 0, 0, 1];
+    color = [1.0, 0.302, 0.0, 1.0];
     mMatrix = mat4.translate(mMatrix, [-0.55, -0.3, 0]);
     mMatrix = mat4.scale(mMatrix, [0.4, 0.2, 1.0]);
     drawSquare(color, mMatrix);
@@ -797,7 +834,7 @@ function drawHouse() {
 
     // base of the house
     pushMatrix(matrixStack, mMatrix);
-    color = [0.83, 0.83, 0.83, 1];
+    color = [0.898, 0.898, 0.898, 1.0];
     mMatrix = mat4.translate(mMatrix, [-0.55, -0.525, 0]);
     mMatrix = mat4.scale(mMatrix, [0.5, 0.25, 1.0]);
     drawSquare(color, mMatrix);
@@ -805,7 +842,7 @@ function drawHouse() {
 
     // windows
     pushMatrix(matrixStack, mMatrix);
-    color = [0.85, 0.7, 0, 0.9];
+    color = [0.898, 0.698, 0.0, 1.0];
     mMatrix = mat4.translate(mMatrix, [-0.7, -0.47, 0]);
     mMatrix = mat4.scale(mMatrix, [0.08, 0.08, 1.0]);
     drawSquare(color, mMatrix);
@@ -825,6 +862,8 @@ function drawHouse() {
     mMatrix = popMatrix(matrixStack);
 }
 
+// OBJECT 14 : CAR 
+
 // wheels for the car
 function drawWheel(move = false, t_x = 0) {
     // initialize the model matrix to identity matrix
@@ -835,44 +874,28 @@ function drawWheel(move = false, t_x = 0) {
     }
     pushMatrix(matrixStack, mMatrix);
     color = [0, 0, 0, 1];
-    mMatrix = mat4.translate(mMatrix, [-0.63, -0.87, 0]);
+    mMatrix = mat4.translate(mMatrix, [-0.63, -0.9, 0]);
     mMatrix = mat4.scale(mMatrix, [0.04, 0.04, 1.0]);
     drawCircle(color, mMatrix);
     mMatrix = popMatrix(matrixStack);
 
     pushMatrix(matrixStack, mMatrix);
     color = [0.51, 0.51, 0.51, 1];
-    mMatrix = mat4.translate(mMatrix, [-0.63, -0.87, 0]);
+    mMatrix = mat4.translate(mMatrix, [-0.63, -0.9, 0]);
     mMatrix = mat4.scale(mMatrix, [0.03, 0.03, 1.0]);
     drawCircle(color, mMatrix);
     mMatrix = popMatrix(matrixStack);
 }
-function drawStar(x, y, size = 1.0) {
-  const STARCOL = [1.0, 1.0, 1.0, 1.0]; // white
-  const numPoints = 4;
 
-  for (let k = 0; k < numPoints; k++) {
-    mat4.identity(mMatrix);
-    mMatrix = mat4.translate(mMatrix, [x, y, 0]);
-    mMatrix = mat4.rotate(mMatrix, degToRad(k * 90), [0, 0, 1]);
-    // Move triangle outward so fat base is in the middle
-    mMatrix = mat4.translate(mMatrix, [0, 0.04 * size, 0]);
-    // Scale so base is wider at the center, point at the end
-    mMatrix = mat4.scale(mMatrix, [0.04 * size, 0.12 * size, 1.0]);
-    drawTriangle(STARCOL, mMatrix);
-  }
-}
 function drawCar() {
-  // === Car Dome (semicircle) ===
   mat4.identity(mMatrix);
   pushMatrix(matrixStack, mMatrix);
-  let color = [0.0, 0.0, 0.6, 1.0]; // darker blue
-  mMatrix = mat4.translate(mMatrix, [-0.5, -0.75, 0]);
+  let color = [0.0, 0.302, 0.698, 1.0]; 
+   mMatrix = mat4.translate(mMatrix, [-0.5, -0.75, 0]);
   mMatrix = mat4.scale(mMatrix, [0.15, 0.11, 1.0]);
   drawCircle(color, mMatrix);
   mMatrix = popMatrix(matrixStack);
 
-  // === Window (small rectangle) ===
   pushMatrix(matrixStack, mMatrix);
   color = [0.8, 0.8, 0.9, 1.0]; // light gray
   mMatrix = mat4.translate(mMatrix, [-0.5, -0.76, 0]);
@@ -880,27 +903,23 @@ function drawCar() {
   drawSquare(color, mMatrix);
   mMatrix = popMatrix(matrixStack);
 
-  // === Wheels ===
   drawWheel(false);       // left wheel
   drawWheel(true, 0.27);  // right wheel
 
-  // === Car Base (trapezoid) — drawn LAST so it overlaps ===
   mat4.identity(mMatrix);
   pushMatrix(matrixStack, mMatrix);
-  color = [0.0, 0.3, 0.9, 1.0]; // blue
+  color = [0.0, 0.502, 0.898, 1.0];
   mMatrix = mat4.translate(mMatrix, [-0.5, -0.82, 0]);
   mMatrix = mat4.scale(mMatrix, [0.35, 0.12, 1.0]);
   drawSquare(color, mMatrix);
   mMatrix = popMatrix(matrixStack);
 
-  // Left triangle (trapezoid side)
   pushMatrix(matrixStack, mMatrix);
   mMatrix = mat4.translate(mMatrix, [-0.68, -0.82, 0]);
   mMatrix = mat4.scale(mMatrix, [0.18, 0.12, 1.0]);
   drawTriangle(color, mMatrix);
   mMatrix = popMatrix(matrixStack);
 
-  // Right triangle (trapezoid side)
   pushMatrix(matrixStack, mMatrix);
   mMatrix = mat4.translate(mMatrix, [-0.32, -0.82, 0]);
   mMatrix = mat4.scale(mMatrix, [0.18, 0.12, 1.0]);
@@ -908,9 +927,8 @@ function drawCar() {
   mMatrix = popMatrix(matrixStack);
 }
 
+//PUTTING IT ALL TOGETHER IN A SCENE
 
-
-////////////////////////////////////////////////////////////////////////
 function drawScene() {
     gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
     gl.clearColor(0.95, 0.95, 0.95, 1.0);
@@ -925,17 +943,26 @@ function drawScene() {
         // Update the rotation angle
         rotationAngle += rotationSpeed;
 
-        // Update translation based on direction
-        translationX += translationSpeed * direction;
+        // // Update translation based on direction
+        // translationX += translationSpeed * direction;
 
-        // Reverse direction at translationRange
-        if (Math.abs(translationX) > translationRange) {
-            direction *= -1;
+        // // Reverse direction at translationRange
+        // if (Math.abs(translationX) > translationRange) {
+        //     direction *= -1;
+        // }
+                // --- Red boat ---
+        boat1X += boatSpeed * boat1Dir;
+        if (Math.abs(boat1X) > boatRange) {
+            boat1Dir *= -1;  // reverse direction
+        }
+
+        // --- Purple boat ---
+        boat2X += boatSpeed * boat2Dir;
+        if (Math.abs(boat2X) > boatRange) {
+            boat2Dir *= -1;  // reverse direction
         }
         drawSky();
-
-        // applying animation to the sun
-        drawSun(rotationAngle);
+        drawMoon(rotationAngle);
 
         drawCloud();
 
@@ -945,6 +972,7 @@ function drawScene() {
         drawStar(-0.15, 0.6, 0.15);
         drawStar(0.2, 0.85, 0.35);
         drawStar(0.4, 0.95, 0.2);
+
         // draw the 3 mountains
         drawMountain(-0.6, 0.09, 1.2, 0.4, -0.555, 0.095);
         drawMountain(-0.076, 0.09, 1.8, 0.55, -0.014, 0.096);
@@ -960,15 +988,12 @@ function drawScene() {
         drawTrees(true, -0.2, 0, 0.8, 0.8)
 
         // applying back and forth motion to the boat
-        drawBoat(translationX);
+        drawBoat_purple(boat2X); // purple boat moving opposite
 
-        // applying rotatory motion to the blades of the windmill
-        // drawFan(rotationAngle);
-        // drawFan(rotationAngle, true, -1.2);
-        drawFan2(rotationAngle, 0.4, -0.14, 0.7);
-
-        drawFan2(rotationAngle, 0.6, -0.2, 1.0);
-
+        drawBoat(boat1X);
+        // draw the windmills
+        drawWindmill(rotationAngle, 0.4, -0.14, 0.7);
+        drawWindmill(rotationAngle, 0.6, -0.2, 1.0);
 
         // draw the bushes
         drawBush();
