@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>2D Animated Scene — Primitives + Affine Transforms</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; margin: 16px; }
+    .controls { margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap; }
+    canvas { border: 1px solid #ccc; border-radius: 8px; }
+  </style>
+  <!-- use the same glMatrix version your course provided -->
+  <script src="glMatrix-0.9.5.min.js"></script>
+  <script defer src="main.js"></script>
+</head>
+<body onload="webGLStart();">
+  <h2>2D Scene (Squares, Triangles, Circles + Affine Transforms)</h2>
+  <canvas id="scene" width="800" height="600"></canvas>
+
+  <div class="controls">
+    <button onclick="setMode(gl.POINTS)">Points</button>
+    <button onclick="setMode(gl.LINE_LOOP)">Wireframe</button>
+    <button onclick="setMode(gl.TRIANGLES)">Solid</button>
+    <span id="modeLabel" style="margin-left:12px;opacity:.8;"></span>
+  </div>
+</body>
+</html>
