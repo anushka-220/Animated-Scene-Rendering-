@@ -279,13 +279,10 @@ function drawCircle(color, mMatrix) {
 // OBJECT 1: SKY 
 
 function drawSky() {
-    // initialize the model matrix to identity matrix
     mat4.identity(mMatrix);
     pushMatrix(matrixStack, mMatrix);
-    color = [0, 0, 0, 1];  // sky blue colour
-    // local translation operation for the square
+    color = [0, 0, 0, 1];  
     mMatrix = mat4.translate(mMatrix, [0.0, 0.6, 0]);
-    // local scale operation for the square
     mMatrix = mat4.scale(mMatrix, [3.0, 1.2, 1.0]);
     drawSquare(color, mMatrix);
     mMatrix = popMatrix(matrixStack);
@@ -293,112 +290,101 @@ function drawSky() {
 
 // OBJECT 2: MOON 
 
-// this function is for creating the rays of the moon
+const NUM_RAYS = 8;
+
+// Buffers
+let rayVertexBuffer = null;
+let rayIndexBuffer = null;
+
+
 function initRayBuffer() {
-    // buffer for point locations
+    // Generating positions: center at (0,0), then rays at angles
     const positions = [0, 0];
-    
-    // taking only 8 segments
-    for (let i = 0; i < 8; i++) {
-      const angle = (Math.PI * 2) * i / 8;
-      const x = Math.cos(angle);
-      const y = Math.sin(angle);
-      positions.push(x, y);
+    for (let i = 0; i < NUM_RAYS; i++) {
+        const angle = (2 * Math.PI * i) / NUM_RAYS;
+        positions.push(Math.cos(angle), Math.sin(angle));
     }
+
+    // Creating vertex buffer
     const rayVertices = new Float32Array(positions);
-    rayBuf = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, rayBuf);
+    rayVertexBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, rayVertexBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, rayVertices, gl.STATIC_DRAW);
-    rayBuf.itemSize = 2;
-    rayBuf.numItems = 9;
+    rayVertexBuffer.itemSize = 2;
+    rayVertexBuffer.numItems = NUM_RAYS + 1; 
 
-    // Create index buffer
+    // Creating index buffer
     const indices = [];
-    for (let i = 0; i < 8; i++) {
-      indices.push(0, i+1);
+    for (let i = 0; i < NUM_RAYS; i++) {
+        indices.push(0, i + 1);
     }
 
-    // buffer for point indices
     const rayIndices = new Uint16Array(indices);
-    rayIndexBuf = gl.createBuffer();
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, rayIndexBuf);
+    rayIndexBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, rayIndexBuffer);
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, rayIndices, gl.STATIC_DRAW);
-    rayIndexBuf.itemsize = 1;
-    rayIndexBuf.numItems = indices.length;
+    rayIndexBuffer.itemSize = 1;
+    rayIndexBuffer.numItems = indices.length;
 }
 
-function drawRays(color, mMatrix) {
-    gl.uniformMatrix4fv(uMMatrixLocation, false, mMatrix);
+function drawRays(color, modelMatrix) {
+    gl.uniformMatrix4fv(uMMatrixLocation, false, modelMatrix);
 
-    // buffer for point locations
-    gl.bindBuffer(gl.ARRAY_BUFFER, rayBuf);
-    gl.vertexAttribPointer(aPositionLocation, rayBuf.itemSize, gl.FLOAT, false, 0, 0);
+    // Bind vertex data
+    gl.bindBuffer(gl.ARRAY_BUFFER, rayVertexBuffer);
+    gl.vertexAttribPointer(aPositionLocation, rayVertexBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
-    // buffer for point indices
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, rayIndexBuf);
+    // Bind index data
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, rayIndexBuffer);
     gl.uniform4fv(uColorLoc, color);
 
-    // now draw the circle
-    if (mode === 'p') {
-        gl.drawElements(gl.POINTS, rayIndexBuf.numItems, gl.UNSIGNED_SHORT, 0);
-    }
-    // the rays are lines even in "solid" view
-    else {
-        gl.drawElements(gl.LINE_STRIP, rayIndexBuf.numItems, gl.UNSIGNED_SHORT, 0);
-    }
+    const drawMode = (mode === 'p') ? gl.POINTS : gl.LINES;
+    gl.drawElements(drawMode, rayIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
 }
-// The rotation angle is taken as input for animation
+
 function drawMoon(rotationAngle) {
-    // initialize the model matrix to identity matrix
-    mat4.identity(mMatrix);
+    const moonColor = [1, 1, 1, 1];
+
+    // Draw Moon 
     pushMatrix(matrixStack, mMatrix);
-    color = [1, 0, 0, 0];
-    // local translation operation for the circle
     mMatrix = mat4.translate(mMatrix, [-0.7, 0.84, 0]);
-    // local scale operation for the circle
     mMatrix = mat4.scale(mMatrix, [0.1, 0.1, 1.0]);
-    drawCircle(color, mMatrix);
+    drawCircle(moonColor, mMatrix);
     mMatrix = popMatrix(matrixStack);
 
+    // Draw Rays
     pushMatrix(matrixStack, mMatrix);
-    // local translation operation for the circle
     mMatrix = mat4.translate(mMatrix, [-0.7, 0.84, 0]);
-    // local scale operation for the circle
     mMatrix = mat4.scale(mMatrix, [0.15, 0.15, 1.0]);
-    // rotation of the circle for animation
     mMatrix = mat4.rotate(mMatrix, rotationAngle, [0, 0, 1]);
-    drawRays(color, mMatrix);
+    drawRays(moonColor, mMatrix);
     mMatrix = popMatrix(matrixStack);
 }
 
 // OBJECT 3: CLOUDS
 
 function drawCloud() {
-    // initialize the model matrix to identity matrix
     mat4.identity(mMatrix);
     pushMatrix(matrixStack, mMatrix);
     let color = [0.7, 0.7, 0.7, 1.0];   // grey
-    // local translation operation for the circle
+    //grey cloud
     mMatrix = mat4.translate(mMatrix, [-0.8, 0.55, 0]);
-    // local scale operation for the circle
     mMatrix = mat4.scale(mMatrix, [0.25, 0.13, 1.0]);
     drawCircle(color, mMatrix);
     mMatrix = popMatrix(matrixStack);
 
+    // white cloud
     pushMatrix(matrixStack, mMatrix);
     color = [1.0, 1.0, 1.0, 1.0];
-    // local translation operation for the circle
     mMatrix = mat4.translate(mMatrix, [-0.55, 0.52, 0]);
-    // local scale operation for the circle
     mMatrix = mat4.scale(mMatrix, [0.2, 0.09, 1.0]);
     drawCircle(color, mMatrix);
     mMatrix = popMatrix(matrixStack);
 
+    //grey cloud
     pushMatrix(matrixStack, mMatrix);
     color = [0.7, 0.7, 0.7, 1.0];
-    // local translation operation for the circle
     mMatrix = mat4.translate(mMatrix, [-0.3, 0.52, 0]);
-    // local scale operation for the circle
     mMatrix = mat4.scale(mMatrix, [0.1, 0.05, 1.0]);
     drawCircle(color, mMatrix);
     mMatrix = popMatrix(matrixStack);
@@ -408,18 +394,16 @@ function drawCloud() {
 // OBJECT 4: STARS
 
 function drawStar(x, y, size = 1.0) {
-  const STARCOL = [1.0, 1.0, 1.0, 1.0]; // white
+  const STAR_Colour = [1.0, 1.0, 1.0, 1.0]; // white
   const numPoints = 4;
 
   for (let k = 0; k < numPoints; k++) {
     mat4.identity(mMatrix);
     mMatrix = mat4.translate(mMatrix, [x, y, 0]);
     mMatrix = mat4.rotate(mMatrix, degToRad(k * 90), [0, 0, 1]);
-    // Move triangle outward so fat base is in the middle
     mMatrix = mat4.translate(mMatrix, [0, 0.04 * size, 0]);
-    // Scale so base is wider at the center, point at the end
     mMatrix = mat4.scale(mMatrix, [0.04 * size, 0.12 * size, 1.0]);
-    drawTriangle(STARCOL, mMatrix);
+    drawTriangle(STAR_Colour, mMatrix);
   }
 }
 
