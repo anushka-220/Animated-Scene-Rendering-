@@ -5,9 +5,6 @@
 var gl;
 var color;
 var matrixStack = [];
-
-// mMatrix is called the model matrix, transforms objects
-// from local object space to world space.
 var mMatrix = mat4.create();
 var uMMatrixLocation;
 
@@ -18,17 +15,16 @@ var animation;
 
 // for back and forth motion of the boat
 let x_direction_translation = 0.0;
-const translationSpeed = 0.003;
-const translationRange = 0.7;
-let direction = 1;
-let boat1X = 0;       // red boat
-let boat1Dir = 1;     // 1 = right, -1 = left
 
-let boat2X = -0.5;    // purple boat (start more left)
-let boat2Dir = 1;     
+let direction = 1;
+let boat_red_x = 0;       // red boat
+let red_boat_direction = 1;     // 1 = right, -1 = left
+
+let boat_purple_x = -0.5;    // purple boat (start more left)
+let purple_boat_dir = 1;     
 
 let boatSpeed = 0.003;   // tweak speed
-let boatRange = 0.7;  
+let boatRange = 0.9;  
 // for rotation of the windmill and sun
 let rotationAngle = 0.0;
 const rotationSpeed = 0.03;
@@ -639,7 +635,7 @@ function drawRiver() {
 
 
 //OBJECT 10: BOAT 
-function drawBoat_purple(x_direction_translation) {
+function draw_PurpleBoat(x_direction_translation) {
     mat4.identity(mMatrix);
 
     // apply global translation
@@ -688,8 +684,6 @@ function drawBoat_purple(x_direction_translation) {
     drawTriangle(color, mMatrix);
     mMatrix = popMatrix(matrixStack);
 
-    
-
     // support rope/pole
     pushMatrix(matrixStack, mMatrix);
     color = [0, 0, 0, 1.0];
@@ -702,8 +696,7 @@ function drawBoat_purple(x_direction_translation) {
    
 }
 // x_direction_translation is taken as argument for the animation
-function drawBoat(x_direction_translation) {
-    // initialize the model matrix to identity matrix
+function draw_RedBoat(x_direction_translation) {
     mat4.identity(mMatrix);
 
     // applying global translation
@@ -757,7 +750,6 @@ function drawBoat(x_direction_translation) {
 // OBJECT 11: ROAD 
 
 function drawRoad() {
-    // initialize the model matrix to identity matrix
     mat4.identity(mMatrix);
     pushMatrix(matrixStack, mMatrix);
     color = [0.400, 0.698, 0.200, 1.0];
@@ -802,7 +794,6 @@ function drawBush(move=false, x_translation=0, y_translation=0, s=0) {
 // OBJECT 13: HOUSE
 
 function drawHouse() {
-    // initialize the model matrix to identity matrix
     mat4.identity(mMatrix);
 
     // roof of the house
@@ -861,10 +852,8 @@ function drawHouse() {
 
 // wheels for the car
 function drawWheel(move = false, x_translation = 0) {
-    // initialize the model matrix to identity matrix
     mat4.identity(mMatrix);
     if (move) {
-        // applying global translation for the other wheel
         mMatrix = mat4.translate(mMatrix, [x_translation, 0, 0]);
     }
     pushMatrix(matrixStack, mMatrix);
@@ -886,7 +875,7 @@ function drawCar() {
   mat4.identity(mMatrix);
   pushMatrix(matrixStack, mMatrix);
   let color = [0.0, 0.302, 0.698, 1.0]; 
-   mMatrix = mat4.translate(mMatrix, [-0.5, -0.75, 0]);
+  mMatrix = mat4.translate(mMatrix, [-0.5, -0.75, 0]);
   mMatrix = mat4.scale(mMatrix, [0.15, 0.11, 1.0]);
   drawCircle(color, mMatrix);
   mMatrix = popMatrix(matrixStack);
@@ -909,14 +898,16 @@ function drawCar() {
   drawSquare(color, mMatrix);
   mMatrix = popMatrix(matrixStack);
 
+  // Left triangle
   pushMatrix(matrixStack, mMatrix);
-  mMatrix = mat4.translate(mMatrix, [-0.68, -0.82, 0]);
+  mMatrix = mat4.translate(mMatrix, [-0.675, -0.82, 0]); 
   mMatrix = mat4.scale(mMatrix, [0.18, 0.12, 1.0]);
   drawTriangle(color, mMatrix);
   mMatrix = popMatrix(matrixStack);
 
+  // Right triangle
   pushMatrix(matrixStack, mMatrix);
-  mMatrix = mat4.translate(mMatrix, [-0.32, -0.82, 0]);
+  mMatrix = mat4.translate(mMatrix, [-0.325, -0.82, 0]); 
   mMatrix = mat4.scale(mMatrix, [0.18, 0.12, 1.0]);
   drawTriangle(color, mMatrix);
   mMatrix = popMatrix(matrixStack);
@@ -937,25 +928,18 @@ function drawScene() {
     function animate() {
         // Update the rotation angle
         rotationAngle += rotationSpeed;
-
-        // // Update translation based on direction
-        // x_direction_translation += translationSpeed * direction;
-
-        // // Reverse direction at translationRange
-        // if (Math.abs(x_direction_translation) > translationRange) {
-        //     direction *= -1;
-        // }
-                // --- Red boat ---
-        boat1X += boatSpeed * boat1Dir;
-        if (Math.abs(boat1X) > boatRange) {
-            boat1Dir *= -1;  // reverse direction
+        // for red boat
+        boat_red_x += boatSpeed * red_boat_direction;
+        if (Math.abs(boat_red_x) > boatRange) {
+            red_boat_direction *= -1; // reverse direction
         }
 
-        // --- Purple boat ---
-        boat2X += boatSpeed * boat2Dir;
-        if (Math.abs(boat2X) > boatRange) {
-            boat2Dir *= -1;  // reverse direction
+        //Purple boat
+        boat_purple_x += boatSpeed * purple_boat_dir;
+        if (Math.abs(boat_purple_x) > boatRange) {
+            purple_boat_dir *= -1;  // reverse direction
         }
+
         drawSky();
         drawMoon(rotationAngle);
 
@@ -983,9 +967,9 @@ function drawScene() {
         drawTrees(true, -0.2, 0, 0.8, 0.8)
 
         // applying back and forth motion to the boat
-        drawBoat_purple(boat2X); // purple boat moving opposite
+        draw_PurpleBoat(boat_purple_x); // purple boat moving opposite
+        draw_RedBoat(boat_red_x);
 
-        drawBoat(boat1X);
         // draw the windmills
         drawWindmill(rotationAngle, 0.4, -0.14, 0.7);
         drawWindmill(rotationAngle, 0.6, -0.2, 1.0);
@@ -1005,18 +989,14 @@ function drawScene() {
     animate();
 }
 
-// This is the entry point from the html
+
 function webGLStart() {
     var canvas = document.getElementById("scenery");
     initGL(canvas);
     shaderProgram = initShaders();
-
-    //get locations of attributes declared in the vertex shader
     const aPositionLocation = gl.getAttribLocation(shaderProgram, "aPosition");
 
     uMMatrixLocation = gl.getUniformLocation(shaderProgram, "uMMatrix");
-
-    //enable the attribute arrays
     gl.enableVertexAttribArray(aPositionLocation);
 
     uColorLoc = gl.getUniformLocation(shaderProgram, "color");
@@ -1031,9 +1011,7 @@ function webGLStart() {
     drawScene();
 }
 
-// this function gets called when the button is pressed.
-// it changes the mode of the canvas by to point view ('p'), 
-// wireframe view ('w') or solid view ('s')
+// changing the view
 function changeView(m) {
     mode = m;
     drawScene();
