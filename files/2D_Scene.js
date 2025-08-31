@@ -17,7 +17,7 @@ var uColorLoc;
 var animation;
 
 // for back and forth motion of the boat
-let translationX = 0.0;
+let x_direction_translation = 0.0;
 const translationSpeed = 0.003;
 const translationRange = 0.7;
 let direction = 1;
@@ -409,32 +409,42 @@ function drawStar(x, y, size = 1.0) {
 
 // OBJECT 5 : MOUNTAINS
 
-function drawMountain(t_x1, t_y1, s_x, s_y, t_x2 = 0, t_y2 = 0, single = false) {
+function drawMountain(x_translation1, y_translation_1, 
+                        scale_x, scale_y,
+                        x_translation2 = 0, y_translation2 = 0, 
+                        one_triangle = false) {
     /*
-    t_x1, t_x2 : Translation along X-axis for the first and second triangle respectively
-    t_y1, t_y2 : Translation along Y-axis for the first and second triangle respectively
-    s_x : Scale Factor on X Axis for both triangles
-    s_y : Scale Factor on Y Axis for both triangles
-    single : Since one of the mountains has only one triangle, this is used to denote that
-    */
-    // initialize the model matrix to identity matrix
+    x_translation1, x_translation2 : Horizontal translation (X-axis shift) for the first and second triangles. 
+                                     x_translation1 moves the base triangle, x_translation2 moves the overlay triangle.
+
+    y_translation1, y_translation2 : Vertical translation (Y-axis shift) for the first and second triangles. 
+                                     y_translation1 moves the base triangle, y_translation2 moves the overlay triangle.
+
+    scale_x : Scaling factor along the X-axis, applied equally to both triangles to control mountain width.
+
+    scale_y : Scaling factor along the Y-axis, applied equally to both triangles to control mountain height.
+
+    one_triangle : Boolean flag that specifies whether the mountain consists of only a single triangle 
+                   (true = single triangle mountain, false = mountain with overlay triangle).
+*/
+
     mat4.identity(mMatrix);
     pushMatrix(matrixStack, mMatrix);
     color = [0.57, 0.36, 0.15, 1.0];
-    if (single) color = [0.65, 0.46, 0.16, 1.0];
+    if (one_triangle) color = [0.65, 0.46, 0.16, 1.0];
 
-    mMatrix = mat4.translate(mMatrix, [t_x1, t_y1, 0]);
-    mMatrix = mat4.scale(mMatrix, [s_x, s_y, 1.0]);
+    mMatrix = mat4.translate(mMatrix, [x_translation1, y_translation_1, 0]);
+    mMatrix = mat4.scale(mMatrix, [scale_x, scale_y, 1.0]);
     drawTriangle(color, mMatrix);
     mMatrix = popMatrix(matrixStack);
 
-    // if there is a single triangle in the mountain, we ignore the darker portion
-    if (!single) {
+    // ignore darker part if there is one triangle present 
+    if (!one_triangle) {
         pushMatrix(matrixStack, mMatrix);
         color = [0.65, 0.46, 0.16, 1.0];
-        mMatrix = mat4.translate(mMatrix, [t_x2, t_y2, 0]);
+        mMatrix = mat4.translate(mMatrix, [x_translation2, y_translation2, 0]);
         mMatrix = mat4.rotate(mMatrix, 6.5, [0, 0, 1]);
-        mMatrix = mat4.scale(mMatrix, [s_x, s_y, 1.0]);
+        mMatrix = mat4.scale(mMatrix, [scale_x, scale_y, 1.0]);
         drawTriangle(color, mMatrix);
         mMatrix = popMatrix(matrixStack);
     }
@@ -443,13 +453,18 @@ function drawMountain(t_x1, t_y1, s_x, s_y, t_x2 = 0, t_y2 = 0, single = false) 
 
 //OBEJCT 6: TREES 
 
-function drawTrees(move = false, t_x = 0, t_y= 0, s_x = 0, s_y = 0) {
+function drawTrees(move = false, 
+                x_translation = 0,
+                y_translation= 0, 
+                scale_x = 0, 
+                scale_y = 0) {
+    
     // initialize the model matrix to identity matrix
     mat4.identity(mMatrix);
     if (move) {
         // applying global translation and scaling
-        mMatrix = mat4.translate(mMatrix, [t_x, t_y, 0]);
-        mMatrix = mat4.scale(mMatrix, [s_x, s_y, 0]);
+        mMatrix = mat4.translate(mMatrix, [x_translation, y_translation, 0]);
+        mMatrix = mat4.scale(mMatrix, [scale_x, scale_y, 0]);
     }
     // stem of the tree
     pushMatrix(matrixStack, mMatrix);
@@ -488,7 +503,7 @@ function drawTrees(move = false, t_x = 0, t_y= 0, s_x = 0, s_y = 0) {
 //OBJECT 7 : WINDMILL
 
 // this function is for creating the blades of the windmill (easier to rotate)
-function initFanBladesBuffer() {
+function init_Windmill_bladesBuffer() {
     // buffer for point locations
     const positions = [0, 0];
     
@@ -521,7 +536,7 @@ function initFanBladesBuffer() {
     bladeIndexBuf.numItems = indices.length;
 }
 
-function drawFanBlades(color, mMatrix) {
+function draw_Windmill_fans(color, mMatrix) {
     gl.uniformMatrix4fv(uMMatrixLocation, false, mMatrix);
 
     // buffer for point locations
@@ -532,7 +547,7 @@ function drawFanBlades(color, mMatrix) {
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, bladeIndexBuf);
     gl.uniform4fv(uColorLoc, color);
 
-    // now draw the circle
+    // drawing the circle now 
     if (mode === 's') {
         gl.drawElements(gl.TRIANGLE_FAN, bladeIndexBuf.numItems, gl.UNSIGNED_SHORT, 0);
     }
@@ -546,7 +561,7 @@ function drawFanBlades(color, mMatrix) {
 
 // rotationAngle animates the blades
 function drawWindmill(rotationAngle, x = 0.7, y = -0.25, s = 1.0) {
-    // Fan tower
+    // Windmill pole
     mat4.identity(mMatrix);
     pushMatrix(matrixStack, mMatrix);
     color = [0, 0, 0, 1.0];
@@ -555,16 +570,16 @@ function drawWindmill(rotationAngle, x = 0.7, y = -0.25, s = 1.0) {
     drawSquare(color, mMatrix);
     mMatrix = popMatrix(matrixStack);
 
-    // Fan blades
+    // Windmill fans
     pushMatrix(matrixStack, mMatrix);
     color = [0.8, 0.75, 0, 1];
-    mMatrix = mat4.translate(mMatrix, [x, y + 0.31 * s, 0]); // top of tower
+    mMatrix = mat4.translate(mMatrix, [x, y + 0.31 * s, 0]); 
     mMatrix = mat4.scale(mMatrix, [0.2 * s, 0.2 * s, 1.0]);
     mMatrix = mat4.rotate(mMatrix, rotationAngle, [0, 0, 1]);
-    drawFanBlades(color, mMatrix);
+    draw_Windmill_fans(color, mMatrix);
     mMatrix = popMatrix(matrixStack);
 
-    // Fan hub (circle in center)
+    // Windmill hub 
     pushMatrix(matrixStack, mMatrix);
     color = [0, 0, 0, 1];
     mMatrix = mat4.translate(mMatrix, [x, y + 0.303 * s, 0]);
@@ -577,7 +592,6 @@ function drawWindmill(rotationAngle, x = 0.7, y = -0.25, s = 1.0) {
 // OBJECT 8: GROUND
 
 function drawGround() {
-    // initialize the model matrix to identity matrix
     mat4.identity(mMatrix);
     pushMatrix(matrixStack, mMatrix);
     color = [0.0, 0.898, 0.502, 1.0];
@@ -590,13 +604,12 @@ function drawGround() {
 // OBJECT 9: RIVER 
 
 // for drawing lines on the river
-function drawLines(move = false, x = 0, y = 0) {
+function draw_WaterLines(move = false, x = 0, y = 0) {
     /*
     move : this is for global translation of the lines along the river
     x : translation along X axis
     y : translation along Y axis
     */
-    // initialize the model matrix to identity matrix
     mat4.identity(mMatrix);
     if (move) {
         mMatrix = mat4.translate(mMatrix, [x, y, 0]);
@@ -611,7 +624,6 @@ function drawLines(move = false, x = 0, y = 0) {
 }
 
 function drawRiver() {
-    // initialize the model matrix to identity matrix
     mat4.identity(mMatrix);
     pushMatrix(matrixStack, mMatrix);
     color = [0, 0, 0.8, 0.8];
@@ -620,32 +632,30 @@ function drawRiver() {
     drawSquare(color, mMatrix);
     mMatrix = popMatrix(matrixStack);
 
-    // draw the lines on the river
-    drawLines();
-    drawLines(true, 0.85, 0.1);
-    drawLines(true, 1.5, -0.06);
+    draw_WaterLines();
+    draw_WaterLines(true, 0.85, 0.1);
+    draw_WaterLines(true, 1.5, -0.06);
 }
 
 
 //OBJECT 10: BOAT 
-function drawBoat_purple(translationX) {
+function drawBoat_purple(x_direction_translation) {
     mat4.identity(mMatrix);
 
-    // apply global translation (with a slight upward shift on Y)
-    mMatrix = mat4.translate(mMatrix, [translationX, 0.08, 0]);  
-    // ^ added +0.05 to Y to move boat higher
-
-    // scale down the entire boat
+    // apply global translation
+    mMatrix = mat4.translate(mMatrix, [x_direction_translation, 0.08, 0]);  
+    // to scale down the entire boat
     const scaleFactor = 0.6;  
 
-     // sail (now purple!)
+    // sail of the boat
     pushMatrix(matrixStack, mMatrix);
-    color = [0.6, 0.0, 0.6, 0.9];  // purple RGBA
+    color = [0.6, 0.0, 0.6, 0.9]; 
     mMatrix = mat4.translate(mMatrix, [0.115 * scaleFactor, -0.05, 0]);
     mMatrix = mat4.rotate(mMatrix, 4.72, [0, 0, 1]);
     mMatrix = mat4.scale(mMatrix, [0.2 * scaleFactor, 0.2 * scaleFactor, 1.0]);
     drawTriangle(color, mMatrix);
     mMatrix = popMatrix(matrixStack);
+
     // mast (center pole)
     pushMatrix(matrixStack, mMatrix);
     color = [0, 0, 0, 1.0];
@@ -653,6 +663,7 @@ function drawBoat_purple(translationX) {
     mMatrix = mat4.scale(mMatrix, [0.01, 0.15, 1.0]);
     drawSquare(color, mMatrix);
     mMatrix = popMatrix(matrixStack);
+
     // boat body (rectangle)
     pushMatrix(matrixStack, mMatrix);
     color = [0.800, 0.800, 0.800, 1.0];
@@ -690,13 +701,13 @@ function drawBoat_purple(translationX) {
 
    
 }
-// translationX is taken as argument for the animation
-function drawBoat(translationX) {
+// x_direction_translation is taken as argument for the animation
+function drawBoat(x_direction_translation) {
     // initialize the model matrix to identity matrix
     mat4.identity(mMatrix);
 
     // applying global translation
-    mMatrix = mat4.translate(mMatrix, [translationX, 0., 0]);
+    mMatrix = mat4.translate(mMatrix, [x_direction_translation, 0., 0]);
 
     pushMatrix(matrixStack, mMatrix);
     color = [0.800, 0.800, 0.800, 1.0];
@@ -759,11 +770,11 @@ function drawRoad() {
 
 //OBJECT 12 : BUSHES 
 
-function drawBush(move=false, t_x=0, t_y=0, s=0) {
+function drawBush(move=false, x_translation=0, y_translation=0, s=0) {
     // initialize the model matrix to identity matrix
     mat4.identity(mMatrix);
     if (move) {
-        mMatrix = mat4.translate(mMatrix, [t_x, t_y, 0]);
+        mMatrix = mat4.translate(mMatrix, [x_translation, y_translation, 0]);
         mMatrix = mat4.scale(mMatrix, [s, s, 0]);
     }
     pushMatrix(matrixStack, mMatrix);
@@ -849,12 +860,12 @@ function drawHouse() {
 // OBJECT 14 : CAR 
 
 // wheels for the car
-function drawWheel(move = false, t_x = 0) {
+function drawWheel(move = false, x_translation = 0) {
     // initialize the model matrix to identity matrix
     mat4.identity(mMatrix);
     if (move) {
         // applying global translation for the other wheel
-        mMatrix = mat4.translate(mMatrix, [t_x, 0, 0]);
+        mMatrix = mat4.translate(mMatrix, [x_translation, 0, 0]);
     }
     pushMatrix(matrixStack, mMatrix);
     color = [0, 0, 0, 1];
@@ -928,10 +939,10 @@ function drawScene() {
         rotationAngle += rotationSpeed;
 
         // // Update translation based on direction
-        // translationX += translationSpeed * direction;
+        // x_direction_translation += translationSpeed * direction;
 
         // // Reverse direction at translationRange
-        // if (Math.abs(translationX) > translationRange) {
+        // if (Math.abs(x_direction_translation) > translationRange) {
         //     direction *= -1;
         // }
                 // --- Red boat ---
@@ -1014,7 +1025,8 @@ function webGLStart() {
     initTriangleBuffer();
     initCircleBuffer();
     initRayBuffer();
-    initFanBladesBuffer();
+    init_Windmill_bladesBuffer
+();
 
     drawScene();
 }
